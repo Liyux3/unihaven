@@ -54,3 +54,59 @@ class Accommodation(models.Model):
 
 
 # Update Reservation model
+class Reservation(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='reservations')
+    user_id = models.CharField(max_length=100)  # ID from CEDARS system
+    member_name = models.CharField(max_length=100, default='')
+    member_email = models.EmailField(default='')
+    member_phone = models.CharField(max_length=20, default='')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    university = models.ForeignKey('University', on_delete=models.CASCADE, related_name='reservations', null=True)
+    start_date = models.DateField()  # Start date of the reservation
+    end_date = models.DateField()  # End date of the reservation
+
+    def __str__(self):
+        return f"Reservation for {self.accommodation.title} by {self.user_id}"
+
+
+class Rating(models.Model):
+    accommodation = models.ForeignKey(Accommodation, on_delete=models.CASCADE, related_name='ratings')
+    user_id = models.CharField(max_length=100)
+    score = models.IntegerField(choices=[(i, i) for i in range(6)])  # 0-5
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['accommodation', 'user_id']
+
+    def __str__(self):
+        return f"Rating {self.score}/5 for {self.accommodation.title}"
+
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('reservation_created', 'Reservation Created'),
+        ('reservation_cancelled', 'Reservation Cancelled'),
+        ('reservation_confirmed', 'Reservation Confirmed'),
+        ('reservation_completed', 'Reservation Completed'),
+    ]
+
+    type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, related_name='notifications')
+    created_at = models.DateTimeField(auto_now_add=True)
+    university = models.ForeignKey('University', on_delete=models.CASCADE, related_name='notifications', null=True)
+
+    def __str__(self):
+        return f"{self.type} - {self.created_at}"
+
