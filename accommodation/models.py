@@ -28,3 +28,29 @@ class Location(models.Model):
         return self.name
 
 
+
+class Accommodation(models.Model):
+    ACCOMMODATION_TYPES = [
+        ('hall', 'mini hall'),
+        ('room', 'room'),
+        ('flat', 'flat'),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    type = models.CharField(max_length=50, choices=ACCOMMODATION_TYPES)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    beds = models.IntegerField()
+    bedrooms = models.IntegerField()
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name='accommodations')
+    available_from = models.DateField()
+    available_until = models.DateField()
+    owner = models.ForeignKey(Owner, on_delete=models.CASCADE, related_name='accommodations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    universities = models.ManyToManyField('University', related_name='accommodations')
+
+    def __str__(self):
+        return self.title
+
+
+# Update Reservation model
