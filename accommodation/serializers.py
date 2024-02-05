@@ -59,3 +59,38 @@ class AccommodationSerializer(serializers.ModelSerializer):
         return sum(r.score for r in ratings) / len(ratings)
 
 
+
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ['id', 'accommodation', 'user_id', 'score', 'comment', 'created_at']
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+    accommodation = AccommodationSerializer(read_only=True)
+    accommodation_id = serializers.PrimaryKeyRelatedField(
+        queryset=Accommodation.objects.all(),
+        source='accommodation',
+        write_only=True
+    )
+    university = UniversitySerializer(read_only=True)
+    university_id = serializers.PrimaryKeyRelatedField(
+        queryset=University.objects.all(),
+        source='university',
+        write_only=True,
+        required = False  # Make it optional for now
+    )
+
+    class Meta:
+        model = Reservation
+        fields = ['id', 'accommodation', 'accommodation_id', 'user_id',
+                  'member_name', 'member_email', 'member_phone',
+                  'start_date', 'end_date', 'university', 'university_id', 'status', 'created_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    reservation = ReservationSerializer(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ['id', 'type', 'message', 'is_read', 'reservation', 'created_at']
