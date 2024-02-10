@@ -187,3 +187,340 @@ class AccommodationViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
 
+
+class ReservationViewSet(viewsets.ModelViewSet):
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
+    ppermission_classes = [permissions.AllowAny]
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        reservation = self.get_object()
+
+        if reservation.status == 'cancelled':
+            return Response({'status': 'reservation already cancelled'})
+
+        # prevent cancelling confirmed or completed reservations
+        if reservation.status in ['confirmed', 'completed']:
+            return Response(
+                {'error': 'Confirmed or completed reservations cannot be cancelled.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        reservation.status = 'cancelled'
+        reservation.save()
+
+        # Get the university
+        university = reservation.university
+
+        # Create notification with university
+        Notification.objects.create(
+            type='reservation_cancelled',
+            message=f'Reservation for {reservation.accommodation.title} by {reservation.user_id} from {reservation.start_date} to {reservation.end_date} has been cancelled',
+            reservation=reservation,
+            university=university
+        )
+
+        recipient_email = 'cedars@hku.hk'  # Default
+        if university.code == 'HKUST':
+            recipient_email = 'housing@hkust.edu.hk'  # Example
+        elif university.code == 'CUHK':
+            recipient_email = 'housing@cuhk.edu.hk'  # Example
+
+        # Send email notification
+        from django.core.mail import send_mail
+        send_mail(
+            'Reservation Cancelled',
+            f'Reservation for {reservation.accommodation.title} by {reservation.user_id} from {reservation.start_date} to {reservation.end_date} has been cancelled',
+            'unihaven@example.com',
+            [recipient_email],
+            fail_silently=False,
+        )
+
+        return Response({'status': 'reservation cancelled'})
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a reservation for this accommodation.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Get the university from the request or use a default
+        university_id = request.data.get('university_id')
+
+        # Get the accommodation_id before validation
+        accommodation_id = request.data.get('accommodation_id')
+        if not accommodation_id:
+            return Response(
+                {'error': 'accommodation_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get the dates
+        start_date = request.data.get('start_date')
+        end_date = request.data.get('end_date')
+        if not start_date or not end_date:
+            return Response(
+                {'error': 'start_date and end_date are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if the dates are within the accommodation's availability period
+        accommodation = Accommodation.objects.get(id=accommodation_id)
+        if start_date < accommodation.available_from.isoformat() or end_date > accommodation.available_until.isoformat():
+            return Response(
+                {'error': 'Requested dates are outside the accommodation\'s availability period'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check for overlapping reservations
+        overlapping = Reservation.objects.filter(
+            accommodation_id=accommodation_id,
+            status__in=['pending', 'confirmed'],  # Only check active reservations
+            start_date__lt=end_date,
+            end_date__gt=start_date
+        ).exists()
+
+        if overlapping:
+            return Response(
+                {'error': 'The accommodation is already reserved for part or all of the requested period'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        # Continue with reservation creation
+        reservation = serializer.save()
+
+        if university_id:
+            try:
+                university = University.objects.get(id=university_id)
+            except University.DoesNotExist:
+                university = University.objects.get(code='HKU')  # Default to HKU
+        else:
+            university = University.objects.get(code='HKU')  # Default to HKU
+
+        reservation.university = university
+        reservation.save()
+
+        # Create notification with university
+        university = reservation.university
+        Notification.objects.create(
+            type='reservation_created',
+            message=f'New reservation for {reservation.accommodation.title} by {reservation.member_name} from {reservation.start_date} to {reservation.end_date}',
+            reservation=reservation,
+            university=university
+        )
+
+        # Send email notification with contact info
+        from django.core.mail import send_mail
+        message = f"""
+                New reservation details:
+
+                Accommodation: {reservation.accommodation.title}
+                Member Name: {reservation.member_name}
+                Member Email: {reservation.member_email}
+                Member Phone: {reservation.member_phone}
+                Period: {reservation.start_date} to {reservation.end_date}
+                Status: {reservation.status}
+                Created: {reservation.created_at}
+                University: {university.name}
+                """
+
+        # Send to the appropriate university email
+        recipient_email = 'cedars@hku.hk'  # Default
+        if university.code == 'HKUST':
+            recipient_email = 'housing@hkust.edu.hk'  # Example
+        elif university.code == 'CUHK':
+            recipient_email = 'housing@cuhk.edu.hk'  # Example
+
+        send_mail(
+            'New Reservation',
+            message,
+            'unihaven@example.com',
+            [recipient_email],
+            fail_silently=True,
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        reservation = self.get_object()
+
+        if reservation.status == 'confirmed':
+            return Response({'status': 'reservation already confirmed'})
+
+        if reservation.status == 'cancelled':
+            return Response({'error': 'Cannot confirm a cancelled reservation'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Update status
+        reservation.status = 'confirmed'
+        reservation.save()
+
+        # Get the university
+        university = reservation.university
+
+        # Create notification with university
+        Notification.objects.create(
+            type='reservation_confirmed',
+            message=f'Reservation for {reservation.accommodation.title} by {reservation.user_id} from {reservation.start_date} to {reservation.end_date} has been confirmed',
+            reservation=reservation,
+            university=university
+        )
+
+        # Send email notification
+        recipient_email = 'cedars@hku.hk'  # Default
+        if university.code == 'HKUST':
+            recipient_email = 'housing@hkust.edu.hk'
+        elif university.code == 'CUHK':
+            recipient_email = 'housing@cuhk.edu.hk'
+
+        from django.core.mail import send_mail
+        send_mail(
+            'Reservation Confirmed',
+            f'Your reservation for {reservation.accommodation.title} from {reservation.start_date} to {reservation.end_date} has been confirmed',
+            'unihaven@example.com',
+            [recipient_email],
+            fail_silently=False,
+        )
+        return Response({'status': 'reservation confirmed'})
+
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        reservation = self.get_object()
+
+        if reservation.status == 'completed':
+            return Response({'status': 'reservation already completed'})
+
+        if reservation.status != 'confirmed':
+            return Response({'error': 'Only confirmed reservations can be completed'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Update status
+        reservation.status = 'completed'
+        reservation.save()
+
+        # Get the university
+        university = reservation.university
+
+        # Create notification with university
+        Notification.objects.create(
+            type='reservation_completed',  # Add this to NOTIFICATION_TYPES
+            message=f'Reservation for {reservation.accommodation.title} by {reservation.user_id} from {reservation.start_date} to {reservation.end_date} has been completed',
+            reservation=reservation,
+            university=university
+        )
+
+        # Send email notification to member encouraging them to rate their stay
+        from django.core.mail import send_mail
+        send_mail(
+            'Reservation Completed - Rate Your Stay',
+            f'Your reservation for {reservation.accommodation.title} from {reservation.start_date} to {reservation.end_date} has been completed. We hope you enjoyed your stay! Please take a moment to rate your experience.',
+            'unihaven@example.com',
+            [reservation.member_email],
+            fail_silently=False,
+        )
+
+        return Response({'status': 'reservation completed'})
+
+    # In ReservationViewSet
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Check if we're accessing the member or admin endpoint
+        path = self.request.path
+        is_admin = 'admin' in path
+
+        # Filter by university
+        university_code = self.request.query_params.get('university')
+        if university_code:
+            queryset = queryset.filter(university__code=university_code)
+
+        # Filter by status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+
+        # For member endpoints, filter by user_id
+        if not is_admin:
+            user_id = self.request.query_params.get('user_id')
+            if user_id:
+                queryset = queryset.filter(user_id=user_id)
+
+        return queryset
+
+
+class RatingViewSet(viewsets.ModelViewSet):
+    queryset = Rating.objects.all()
+    serializer_class = RatingSerializer
+
+    def create(self, request, *args, **kwargs):
+        user_id = request.data.get('user_id')
+        accommodation_id = request.data.get('accommodation')
+        reservation_id = request.data.get('reservation_id')
+
+        # If reservation_id is provided, check that specific reservation
+        if reservation_id:
+            try:
+                reservation = Reservation.objects.get(id=reservation_id)
+                # Check if this reservation is completed and confirmed
+                today = timezone.now().date()
+                if not (reservation.status == 'completed' and reservation.end_date < today):
+                    return Response(
+                        {'error': 'You can only rate accommodations after completing a reservation'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Reservation.DoesNotExist:
+                return Response(
+                    {'error': 'Reservation not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Otherwise check if the user had any completed reservation for this accommodation
+            today = timezone.now().date()
+            completed_reservation = Reservation.objects.filter(
+                user_id=user_id,
+                accommodation_id=accommodation_id,
+                status='completed',
+                end_date__lt=today
+            ).exists()
+
+            if not completed_reservation:
+                return Response(
+                    {'error': 'You can only rate accommodations after completing a reservation'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Check if user already rated this accommodation
+        if Rating.objects.filter(accommodation_id=accommodation_id, user_id=user_id).exists():
+            return Response(
+                {"detail": "You have already rated this accommodation. Please edit your existing rating."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().create(request, *args, **kwargs)
+
+
+# Add to views.py
+class NotificationViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all().order_by('-created_at')
+    serializer_class = NotificationSerializer
+    ppermission_classes = [permissions.AllowAny]
+
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'notification marked as read'})
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filter by university if provided
+        university_code = self.request.query_params.get('university')
+        if university_code:
+            queryset = queryset.filter(university__code=university_code)
+
+        return queryset
