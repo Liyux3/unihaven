@@ -524,4 +524,3 @@ class NotificationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(university__code=university_code)
 
         return queryset
-
