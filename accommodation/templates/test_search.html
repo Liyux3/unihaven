@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniHaven - Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: {
+            primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+            accent: { 500: '#f59e0b', 600: '#d97706' }
+        }}}}
+    </script>
+    <style>.star{color:#d1d5db;cursor:pointer;transition:color .15s}.star.selected,.star:hover{color:#f59e0b}</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
+        <span class="text-lg font-semibold text-primary-700 tracking-tight">UniHaven</span>
+        <span class="text-sm text-gray-500">Student Portal</span>
+    </div>
+</nav>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="flex gap-2 mb-6 border-b border-gray-200">
+        <button class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-primary-600 text-primary-700" data-tab="search">Search</button>
+        <button class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="reservations">My Reservations</button>
+    </div>
+    <div id="search-tab" class="tab-content">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">University</label><select id="university" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border focus:ring-primary-500 focus:border-primary-500"><option value="">All</option><option value="HKU" selected>HKU</option><option value="HKUST">HKUST</option><option value="CUHK">CUHK</option></select></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Type</label><select id="type" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"><option value="">Any</option><option value="hall">Mini Hall</option><option value="room">Room</option><option value="flat">Flat</option></select></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Min Price</label><input type="number" id="min_price" min="0" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border" placeholder="0"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Max Price</label><input type="number" id="max_price" min="0" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border" placeholder="40000"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Min Beds</label><input type="number" id="min_beds" min="1" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Min Bedrooms</label><input type="number" id="min_bedrooms" min="1" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Check-in</label><input type="date" id="available_from" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Check-out</label><input type="date" id="available_until" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Near Campus</label><select id="near_campus" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"><option value="">Any</option>{% for campus in campuses %}<option value="{{ campus.id }}">{{ campus.name }}</option>{% endfor %}</select></div>
+                <div><label class="block text-xs font-medium text-gray-600 mb-1">Max Distance (km)</label><input type="number" id="max_distance" min="0" step="0.1" value="5" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <div class="sm:col-span-2 lg:col-span-2 flex items-end"><button id="search" class="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-md transition">Search Accommodations</button></div>
+            </div>
+        </div>
+        <div id="results"></div>
+    </div>
+    <div id="reservations-tab" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-6">
+            <div class="flex gap-3 items-end">
+                <div class="flex-1"><label class="block text-xs font-medium text-gray-600 mb-1">Your User ID</label><input type="text" id="user-id" placeholder="Enter your user ID" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"></div>
+                <button id="load-reservations" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-md transition">Load</button>
+            </div>
+        </div>
+        <div id="my-reservations"></div>
+    </div>
+</div>
+<div id="detail-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-12 px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 relative">
+        <button id="close-detail-modal-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        <h2 id="detail-title" class="text-xl font-semibold text-gray-900 mb-4"></h2>
+        <div id="detail-content" class="text-sm text-gray-700 space-y-2 mb-5"></div>
+        <div class="border-t border-gray-200 pt-4 space-y-3">
+            <h3 class="text-sm font-semibold text-gray-800">Make a Reservation</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="text" id="reservation-name" placeholder="Your Name" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border">
+                <input type="email" id="reservation-email" placeholder="Email" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border">
+                <input type="text" id="reservation-phone" placeholder="Phone" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border">
+                <input type="text" id="reservation-user-id" placeholder="User ID" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border">
+                <select id="reservation-university" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border"><option value="1">HKU</option><option value="2">HKUST</option><option value="3">CUHK</option></select>
+                <div></div>
+                <input type="date" id="reservation-start-date" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border" required>
+                <input type="date" id="reservation-end-date" class="rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border" required>
+            </div>
+            <button id="reserve-btn" class="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-md transition mt-2">Reserve</button>
+        </div>
+    </div>
+</div>
+<div id="rating-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-12 px-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
+        <button id="close-rating-modal-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        <h2 class="text-lg font-semibold text-gray-900 mb-1">Rate Accommodation</h2>
+        <p id="rating-accommodation-name" class="text-sm text-gray-500 mb-4"></p>
+        <div class="flex gap-1 text-2xl mb-4"><span class="star" data-value="1">&#9733;</span><span class="star" data-value="2">&#9733;</span><span class="star" data-value="3">&#9733;</span><span class="star" data-value="4">&#9733;</span><span class="star" data-value="5">&#9733;</span></div>
+        <textarea id="rating-comment" rows="3" placeholder="Comment (optional)" class="w-full rounded-md border-gray-300 shadow-sm text-sm py-2 px-3 border mb-3"></textarea>
+        <input type="hidden" id="rating-accommodation-id"><input type="hidden" id="rating-score" value="0"><input type="hidden" id="rating-user-id">
+        <button id="submit-rating-btn" class="w-full bg-accent-500 hover:bg-accent-600 text-white text-sm font-medium py-2 px-4 rounded-md transition">Submit Rating</button>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',function(){document.querySelectorAll('.tab-btn').forEach(b=>{b.classList.remove('border-primary-600','text-primary-700');b.classList.add('border-transparent','text-gray-500')});document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));this.classList.add('border-primary-600','text-primary-700');this.classList.remove('border-transparent','text-gray-500');document.getElementById(this.getAttribute('data-tab')+'-tab').classList.remove('hidden')})});
+function validateDates(s,e){return new Date(s)<new Date(e)||(alert('Check-out must be after check-in'),false)}
+function formatDate(d){return new Date(d).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})}
+const badgeColors={pending:'bg-yellow-100 text-yellow-800',confirmed:'bg-green-100 text-green-800',completed:'bg-blue-100 text-blue-800',cancelled:'bg-red-100 text-red-800'};
+function statusBadge(s){return '<span class="inline-block px-2 py-0.5 rounded text-xs font-medium '+(badgeColors[s]||'')+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</span>'}
+document.getElementById('search').addEventListener('click',function(){const p=new URLSearchParams();const fields={university:'university',type:'type',min_price:'min_price',max_price:'max_price',min_beds:'min_beds',min_bedrooms:'min_bedrooms',available_from:'available_from',available_until:'available_until'};for(const[id,key]of Object.entries(fields)){const v=document.getElementById(id).value;if(v)p.append(key,v)}const af=document.getElementById('available_from').value,au=document.getElementById('available_until').value;if(af&&au&&!validateDates(af,au))return;const nc=document.getElementById('near_campus').value;if(nc){p.append('near_campus_id',nc);const md=document.getElementById('max_distance').value;if(md)p.append('max_distance',md)}
+fetch('/api/accommodations/?'+p.toString()).then(r=>r.json()).then(data=>{const el=document.getElementById('results');const items=data.results||data;if(!items.length){el.innerHTML='<p class="text-gray-500 text-sm py-8 text-center">No accommodations found.</p>';return}el.innerHTML='<p class="text-xs text-gray-500 mb-3">'+items.length+' result'+(items.length>1?'s':'')+'</p><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">'+items.map(a=>'<div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer p-4" onclick="showDetail('+a.id+')"><div class="flex justify-between items-start mb-2"><h3 class="text-sm font-semibold text-gray-900 leading-tight">'+a.title+'</h3><span class="text-xs font-medium bg-primary-50 text-primary-700 px-2 py-0.5 rounded">'+a.type+'</span></div><p class="text-lg font-bold text-gray-900">HK$'+Number(a.price).toLocaleString()+'<span class="text-xs font-normal text-gray-500">/mo</span></p><div class="flex gap-3 text-xs text-gray-500 mt-2"><span>'+a.beds+' bed'+(a.beds>1?'s':'')+'</span><span>'+a.bedrooms+' bedroom'+(a.bedrooms>1?'s':'')+'</span></div><p class="text-xs text-gray-400 mt-2">'+formatDate(a.available_from)+' - '+formatDate(a.available_until)+'</p>'+(a.distance!==undefined?'<span class="inline-block mt-2 text-xs font-medium bg-green-50 text-green-700 px-2 py-0.5 rounded">'+a.distance.toFixed(1)+' km</span>':'')+(a.average_rating?'<span class="inline-block mt-2 ml-1 text-xs font-medium bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded">&#9733; '+a.average_rating.toFixed(1)+'</span>':'')+(a.universities&&a.universities.length?'<p class="text-xs text-gray-400 mt-1">'+a.universities.map(u=>u.code).join(', ')+'</p>':'')+'</div>').join('')+'</div>'}).catch(()=>{document.getElementById('results').innerHTML='<p class="text-red-500 text-sm">Error loading results.</p>'})});
+function showDetail(id){fetch('/api/accommodations/'+id+'/').then(r=>r.json()).then(a=>{document.getElementById('detail-title').textContent=a.title;document.getElementById('detail-content').innerHTML='<p>'+a.description+'</p><div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm"><div><span class="text-gray-500">Type:</span> '+a.type+'</div><div><span class="text-gray-500">Price:</span> HK$'+Number(a.price).toLocaleString()+'/mo</div><div><span class="text-gray-500">Beds:</span> '+a.beds+'</div><div><span class="text-gray-500">Bedrooms:</span> '+a.bedrooms+'</div><div class="col-span-2"><span class="text-gray-500">Address:</span> '+a.location.address+'</div><div class="col-span-2"><span class="text-gray-500">Available:</span> '+formatDate(a.available_from)+' - '+formatDate(a.available_until)+'</div></div>'+(a.average_rating?'<p><span class="text-yellow-500">&#9733;</span> '+a.average_rating.toFixed(1)+' / 5</p>':'')+(a.universities&&a.universities.length?'<p class="text-gray-500">Managed by: '+a.universities.map(u=>u.name).join(', ')+'</p>':'')+'<div id="existing-reservations" class="mt-3 p-3 bg-gray-50 rounded text-xs text-gray-500">Loading availability...</div>';document.getElementById('reserve-btn').setAttribute('data-id',a.id);const sd=document.getElementById('reservation-start-date'),ed=document.getElementById('reservation-end-date');sd.min=a.available_from;sd.max=a.available_until;sd.value='';ed.min=a.available_from;ed.max=a.available_until;ed.value='';document.getElementById('detail-modal').classList.remove('hidden');fetch('/api/reservations/?accommodation_id='+id+'&status=confirmed').then(r=>r.json()).then(data=>{const res=data.results||data;const el=document.getElementById('existing-reservations');if(!res.length){el.innerHTML='<p class="text-green-600 font-medium">Fully available</p>';return}el.innerHTML='<p class="font-medium text-gray-700 mb-1">Booked periods:</p>'+res.sort((a,b)=>new Date(a.start_date)-new Date(b.start_date)).map(r=>'<div class="bg-red-50 text-red-700 px-2 py-1 rounded my-1">'+formatDate(r.start_date)+' - '+formatDate(r.end_date)+'</div>').join('')}).catch(()=>{})})}
+document.getElementById('close-detail-modal-btn').addEventListener('click',()=>document.getElementById('detail-modal').classList.add('hidden'));
+document.getElementById('close-rating-modal-btn').addEventListener('click',()=>document.getElementById('rating-modal').classList.add('hidden'));
+document.querySelectorAll('#detail-modal,#rating-modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden')}));
+document.getElementById('reserve-btn').addEventListener('click',function(){const aid=this.getAttribute('data-id');const name=document.getElementById('reservation-name').value;const email=document.getElementById('reservation-email').value;const phone=document.getElementById('reservation-phone').value;const uid=document.getElementById('reservation-user-id').value;const uniId=document.getElementById('reservation-university').value;const sd=document.getElementById('reservation-start-date').value;const ed=document.getElementById('reservation-end-date').value;if(!name||!email||!phone||!uid){alert('Please fill in all fields');return}if(!sd||!ed){alert('Please select dates');return}if(!validateDates(sd,ed))return;fetch('/api/reservations/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accommodation_id:aid,user_id:uid,member_name:name,member_email:email,member_phone:phone,university_id:uniId,start_date:sd,end_date:ed})}).then(r=>{if(!r.ok)return r.json().then(d=>{throw new Error(d.error||'Failed')});return r.json()}).then(()=>{alert('Reservation created!');document.getElementById('detail-modal').classList.add('hidden');document.querySelector('[data-tab="reservations"]').click();document.getElementById('user-id').value=uid;document.getElementById('load-reservations').click()}).catch(e=>alert(e.message))});
+document.getElementById('load-reservations').addEventListener('click',function(){const uid=document.getElementById('user-id').value;if(!uid){alert('Enter your User ID');return}fetch('/api/reservations/?user_id='+uid).then(r=>r.json()).then(data=>{const el=document.getElementById('my-reservations');const items=data.results||data;if(!items.length){el.innerHTML='<p class="text-gray-500 text-sm text-center py-8">No reservations.</p>';return}el.innerHTML=items.map(r=>'<div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3"><div class="flex justify-between items-center mb-2"><h3 class="text-sm font-semibold text-gray-900">'+r.accommodation.title+'</h3>'+statusBadge(r.status)+'</div><p class="text-xs text-gray-500">'+formatDate(r.start_date)+' - '+formatDate(r.end_date)+'</p>'+(r.university?'<p class="text-xs text-gray-400">'+r.university.name+'</p>':'')+'<div class="flex gap-2 mt-3">'+(r.status==='pending'?'<button onclick="cancelRes('+r.id+",'"+uid+"')"+'" class="text-xs bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1 rounded transition">Cancel</button>':'')+(r.status==='completed'?'<button onclick="showRating('+r.accommodation.id+",\\'"+r.accommodation.title.replace(/'/g,"\\'")+"\\'"+",\\'"+uid+"\\'"+')'+'" class="text-xs bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-3 py-1 rounded transition">Rate</button>':'')+'</div></div>').join('')}).catch(()=>{document.getElementById('my-reservations').innerHTML='<p class="text-red-500 text-sm">Error.</p>'})});
+function cancelRes(id,uid){if(!confirm('Cancel this reservation?'))return;fetch('/api/reservations/'+id+'/cancel/',{method:'POST'}).then(r=>{if(!r.ok)return r.json().then(d=>{throw new Error(d.error)});return r.json()}).then(()=>{alert('Cancelled.');document.getElementById('load-reservations').click()}).catch(e=>alert(e.message))}
+function showRating(aid,name,uid){fetch('/api/reservations/?user_id='+uid+'&status=completed').then(r=>r.json()).then(data=>{const items=data.results||data;if(!items.some(r=>r.accommodation.id==aid)){alert('Can only rate after completing a reservation.');return}document.getElementById('rating-accommodation-name').textContent=name;document.getElementById('rating-accommodation-id').value=aid;document.getElementById('rating-score').value=0;document.getElementById('rating-comment').value='';document.getElementById('rating-user-id').value=uid;document.querySelectorAll('.star').forEach(s=>s.classList.remove('selected'));document.getElementById('rating-modal').classList.remove('hidden')})}
+document.querySelectorAll('.star').forEach(s=>{s.addEventListener('click',function(){const v=parseInt(this.dataset.value);document.getElementById('rating-score').value=v;document.querySelectorAll('.star').forEach(x=>x.classList.toggle('selected',parseInt(x.dataset.value)<=v))})});
+document.getElementById('submit-rating-btn').addEventListener('click',function(){const score=document.getElementById('rating-score').value;if(score==='0'){alert('Select a rating');return}fetch('/api/ratings/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accommodation:parseInt(document.getElementById('rating-accommodation-id').value),user_id:document.getElementById('rating-user-id').value,score:parseInt(score),comment:document.getElementById('rating-comment').value})}).then(r=>{if(!r.ok)return r.json().then(d=>{throw new Error(d.error||d.detail||'Failed')});return r.json()}).then(()=>{alert('Rating submitted!');document.getElementById('rating-modal').classList.add('hidden')}).catch(e=>alert(e.message))});
+</script>
+</body>
+</html>
