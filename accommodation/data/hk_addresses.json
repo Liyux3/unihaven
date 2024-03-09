@@ -1,0 +1,142 @@
+[
+    {
+        "name": "The Centrium",
+        "address": "60 Wyndham Street, Central, Hong Kong",
+        "latitude": 22.2801,
+        "longitude": 114.1543,
+        "geo_address": "The Centrium, Central, Hong Kong"
+    },
+    {
+        "name": "Times Square",
+        "address": "1 Matheson Street, Causeway Bay, Hong Kong",
+        "latitude": 22.2782,
+        "longitude": 114.1829,
+        "geo_address": "Times Square, Causeway Bay, Hong Kong"
+    },
+    {
+        "name": "International Finance Centre",
+        "address": "8 Finance Street, Central, Hong Kong",
+        "latitude": 22.2849,
+        "longitude": 114.1577,
+        "geo_address": "IFC, Central, Hong Kong"
+    },
+    {
+        "name": "Pacific Place",
+        "address": "88 Queensway, Admiralty, Hong Kong",
+        "latitude": 22.2778,
+        "longitude": 114.1646,
+        "geo_address": "Pacific Place, Admiralty, Hong Kong"
+    },
+    {
+        "name": "Langham Place",
+        "address": "8 Argyle Street, Mong Kok, Hong Kong",
+        "latitude": 22.3186,
+        "longitude": 114.1693,
+        "geo_address": "Langham Place, Mong Kok, Hong Kong"
+    },
+    {
+        "name": "Festival Walk",
+        "address": "80 Tat Chee Avenue, Kowloon Tong, Hong Kong",
+        "latitude": 22.3372,
+        "longitude": 114.1745,
+        "geo_address": "Festival Walk, Kowloon Tong, Hong Kong"
+    },
+    {
+        "name": "Hysan Place",
+        "address": "500 Hennessy Road, Causeway Bay, Hong Kong",
+        "latitude": 22.2800,
+        "longitude": 114.1836,
+        "geo_address": "Hysan Place, Causeway Bay, Hong Kong"
+    },
+    {
+        "name": "Elements",
+        "address": "1 Austin Road West, Tsim Sha Tsui, Hong Kong",
+        "latitude": 22.3048,
+        "longitude": 114.1615,
+        "geo_address": "Elements, Tsim Sha Tsui, Hong Kong"
+    },
+    {
+        "name": "Harbour City",
+        "address": "3-27 Canton Road, Tsim Sha Tsui, Hong Kong",
+        "latitude": 22.2950,
+        "longitude": 114.1677,
+        "geo_address": "Harbour City, Tsim Sha Tsui, Hong Kong"
+    },
+    {
+        "name": "APM",
+        "address": "418 Kwun Tong Road, Kwun Tong, Hong Kong",
+        "latitude": 22.3126,
+        "longitude": 114.2256,
+        "geo_address": "APM, Kwun Tong, Hong Kong"
+    },
+    {
+        "name": "Cityplaza",
+        "address": "18 Taikoo Shing Road, Quarry Bay, Hong Kong",
+        "latitude": 22.2863,
+        "longitude": 114.2180,
+        "geo_address": "Cityplaza, Quarry Bay, Hong Kong"
+    },
+    {
+        "name": "Central Plaza",
+        "address": "18 Harbour Road, Wan Chai, Hong Kong",
+        "latitude": 22.2799,
+        "longitude": 114.1747,
+        "geo_address": "Central Plaza, Wan Chai, Hong Kong"
+    },
+    {
+        "name": "The One",
+        "address": "100 Nathan Road, Tsim Sha Tsui, Hong Kong",
+        "latitude": 22.2997,
+        "longitude": 114.1723,
+        "geo_address": "The One, Tsim Sha Tsui, Hong Kong"
+    },
+    {
+        "name": "Cheung Kong Center",
+        "address": "2 Queen's Road Central, Central, Hong Kong",
+        "latitude": 22.2807,
+        "longitude": 114.1603,
+        "geo_address": "Cheung Kong Center, Central, Hong Kong"
+    },
+    {
+        "name": "Exchange Square",
+        "address": "8 Connaught Place, Central, Hong Kong",
+        "latitude": 22.2831,
+        "longitude": 114.1583,
+        "geo_address": "Exchange Square, Central, Hong Kong"
+    },
+    {
+        "name": "Admiralty Centre",
+        "address": "18 Harcourt Road, Admiralty, Hong Kong",
+        "latitude": 22.2799,
+        "longitude": 114.1647,
+        "geo_address": "Admiralty Centre, Admiralty, Hong Kong"
+    },
+    {
+        "name": "Bank of China Tower",
+        "address": "1 Garden Road, Central, Hong Kong",
+        "latitude": 22.2799,
+        "longitude": 114.1617,
+        "geo_address": "Bank of China Tower, Central, Hong Kong"
+    },
+    {
+        "name": "HSBC Main Building",
+        "address": "1 Queen's Road Central, Central, Hong Kong",
+        "latitude": 22.2808,
+        "longitude": 114.1590,
+        "geo_address": "HSBC Main Building, Central, Hong Kong"
+    },
+    {
+        "name": "Jardine House",
+        "address": "1 Connaught Place, Central, Hong Kong",
+        "latitude": 22.2841,
+        "longitude": 114.1582,
+        "geo_address": "Jardine House, Central, Hong Kong"
+    },
+    {
+        "name": "The Center",
+        "address": "99 Queen's Road Central, Central, Hong Kong",
+        "latitude": 22.2849,
+        "longitude": 114.1535,
+        "geo_address": "The Center, Central, Hong Kong"
+    }
+]
