@@ -558,3 +558,237 @@ class ReservationAPITest(TestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['member_name'], 'HKUST User')
 
+
+class RatingAPITest(TestCase):
+    """Test the Rating API endpoints"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create university
+        self.hku = University.objects.create(name='The University of Hong Kong', code='HKU')
+
+        # Create owner
+        self.owner = Owner.objects.create(name='Test Owner', contact='test@example.com')
+
+        # Create location
+        self.location = Location.objects.create(
+            name='Test Location',
+            address='123 Test St',
+            latitude=22.28,
+            longitude=114.13,
+            geo_address='Test GeoAddress'
+        )
+
+        # Create accommodation
+        self.accommodation = Accommodation.objects.create(
+            title='Test Accommodation',
+            description='Test Description',
+            type='room',
+            price=1000,
+            beds=1,
+            bedrooms=1,
+            location=self.location,
+            available_from='2025-01-01',
+            available_until='2025-12-31',
+            owner=self.owner
+        )
+        self.accommodation.universities.add(self.hku)
+
+        # Create a completed reservation
+        today = datetime.date.today()
+        past_date = today - datetime.timedelta(days=30)
+        self.reservation = Reservation.objects.create(
+            accommodation=self.accommodation,
+            user_id='test_user',
+            member_name='Test User',
+            member_email='test@example.com',
+            member_phone='1234 5678',
+            status='completed',  # Changed to completed
+            university=self.hku,
+            start_date=past_date - datetime.timedelta(days=10),
+            end_date=past_date
+        )
+
+        # Create a pending reservation
+        self.pending_reservation = Reservation.objects.create(
+            accommodation=self.accommodation,
+            user_id='pending_user',
+            member_name='Pending User',
+            member_email='pending@example.com',
+            member_phone='9876 5432',
+            status='pending',
+            university=self.hku,
+            start_date=today,
+            end_date=today + datetime.timedelta(days=10)
+        )
+
+    def test_create_rating_for_completed_reservation(self):
+        """Test creating a rating for a completed reservation"""
+        url = reverse('rating-list')
+        data = {
+            'accommodation': self.accommodation.id,
+            'user_id': 'test_user',
+            'score': 4,
+            'comment': 'Great place!'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Rating.objects.count(), 1)
+        self.assertEqual(Rating.objects.first().score, 4)
+
+    def test_cannot_rate_pending_reservation(self):
+        """Test that users cannot rate accommodations with pending reservations"""
+        url = reverse('rating-list')
+        data = {
+            'accommodation': self.accommodation.id,
+            'user_id': 'pending_user',
+            'score': 3,
+            'comment': 'Not completed yet'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Rating.objects.count(), 0)
+
+    def test_cannot_rate_twice(self):
+        """Test that users cannot rate the same accommodation twice"""
+        # First rating
+        url = reverse('rating-list')
+        data = {
+            'accommodation': self.accommodation.id,
+            'user_id': 'test_user',
+            'score': 4,
+            'comment': 'Great place!'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Second rating attempt
+        data = {
+            'accommodation': self.accommodation.id,
+            'user_id': 'test_user',
+            'score': 5,
+            'comment': 'Even better on second thought!'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Rating.objects.count(), 1)  # Still only one rating
+
+
+class NotificationAPITest(TestCase):
+    """Test the Notification API endpoints"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+        # Create university
+        self.hku = University.objects.create(name='The University of Hong Kong', code='HKU')
+
+        # Create owner
+        self.owner = Owner.objects.create(name='Test Owner', contact='test@example.com')
+
+        # Create location
+        self.location = Location.objects.create(
+            name='Test Location',
+            address='123 Test St',
+            latitude=22.28,
+            longitude=114.13,
+            geo_address='Test GeoAddress'
+        )
+
+        # Create accommodation
+        self.accommodation = Accommodation.objects.create(
+            title='Test Accommodation',
+            description='Test Description',
+            type='room',
+            price=1000,
+            beds=1,
+            bedrooms=1,
+            location=self.location,
+            available_from='2025-01-01',
+            available_until='2025-12-31',
+            owner=self.owner
+        )
+        self.accommodation.universities.add(self.hku)
+
+        # Create reservation
+        self.reservation = Reservation.objects.create(
+            accommodation=self.accommodation,
+            user_id='test_user',
+            member_name='Test User',
+            member_email='test@example.com',
+            member_phone='1234 5678',
+            status='pending',
+            university=self.hku,
+            start_date='2025-02-01',
+            end_date='2025-02-15'
+        )
+
+        # Create notification
+        self.notification = Notification.objects.create(
+            type='reservation_created',
+            message='New reservation created',
+            reservation=self.reservation,
+            university=self.hku
+        )
+
+    def test_list_notifications(self):
+        """Test retrieving a list of notifications"""
+        url = reverse('notification-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_retrieve_notification(self):
+        """Test retrieving a single notification"""
+        url = reverse('notification-detail', args=[self.notification.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['type'], 'reservation_created')
+
+    def test_mark_as_read(self):
+        """Test marking a notification as read"""
+        url = reverse('notification-mark-as-read', args=[self.notification.id])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.notification.refresh_from_db()
+        self.assertTrue(self.notification.is_read)
+
+    def test_filter_by_university(self):
+        """Test filtering notifications by university"""
+        # Create a second university
+        hkust = University.objects.create(name='Hong Kong University of Science and Technology', code='HKUST')
+
+        # Create a second notification for HKUST
+        reservation2 = Reservation.objects.create(
+            accommodation=self.accommodation,
+            user_id='hkust_user',
+            member_name='HKUST User',
+            member_email='hkust@example.com',
+            member_phone='8765 4321',
+            status='pending',
+            university=hkust,
+            start_date='2025-03-01',
+            end_date='2025-03-15'
+        )
+
+        notification2 = Notification.objects.create(
+            type='reservation_created',
+            message='New HKUST reservation',
+            reservation=reservation2,
+            university=hkust
+        )
+
+        # Test filtering by HKU
+        url = reverse('notification-list') + '?university=HKU'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['message'], 'New reservation created')
+
+        # Test filtering by HKUST
+        url = reverse('notification-list') + '?university=HKUST'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['message'], 'New HKUST reservation')
