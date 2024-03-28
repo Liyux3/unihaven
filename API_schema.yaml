@@ -608,3 +608,613 @@ paths:
     get:
       operationId: ratings_list
       summary: "List accommodation ratings"
+      description: "Retrieve a list of all ratings for accommodations."
+      tags:
+      - ratings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rating'
+              example:
+                - id: 1
+                  accommodation: 1
+                  user_id: "jdoe123"
+                  score: 5
+                  comment: "Excellent accommodation, very comfortable and convenient."
+                  created_at: "2025-04-15T12:34:56.789Z"
+          description: 'Successfully retrieved ratings'
+    post:
+      operationId: ratings_create
+      summary: "Rate an accommodation"
+      description: "Submit a rating for an accommodation after completing a reservation."
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+            example:
+              accommodation: 1
+              user_id: "jdoe123"
+              score: 5
+              comment: "Excellent accommodation, very comfortable and convenient."
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: 'Rating submitted successfully'
+        '403':
+          description: 'You can only rate accommodations after completing a reservation'
+
+  /api/ratings/{id}/:
+    get:
+      operationId: ratings_retrieve
+      summary: "Get rating details"
+      description: "Retrieve details of a specific rating."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this rating.
+        required: true
+      tags:
+      - ratings
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: 'Successfully retrieved rating details'
+    put:
+      operationId: ratings_update
+      summary: "Update rating"
+      description: "Update all fields of an existing rating. Users can only update their own ratings."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this rating.
+        required: true
+      tags:
+      - ratings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Rating'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rating'
+          description: 'Rating updated successfully'
+    delete:
+      operationId: ratings_destroy
+      summary: "Delete rating"
+      description: "Remove a rating from the system. Users can only delete their own ratings."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this rating.
+        required: true
+      tags:
+      - ratings
+      responses:
+        '204':
+          description: 'Rating deleted successfully'
+
+  /api/reservations/:
+    get:
+      operationId: reservations_list
+      summary: "List reservations"
+      description: "Retrieve a list of reservations. For students, only their own reservations are shown. For specialists, all reservations for their university are shown."
+      parameters:
+      - name: user_id
+        required: false
+        in: query
+        description: "Filter reservations by user ID"
+        schema:
+          type: string
+      - name: status
+        required: false
+        in: query
+        description: "Filter reservations by status"
+        schema:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+      - name: university
+        required: false
+        in: query
+        description: "Filter reservations by university code"
+        schema:
+          type: string
+      tags:
+      - reservations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+              example:
+                - id: 1
+                  accommodation:
+                    id: 1
+                    title: "Cozy Studio Apartment"
+                    type: "room"
+                    price: "8000.00"
+                  user_id: "jdoe123"
+                  member_name: "John Doe"
+                  member_email: "john.doe@example.com"
+                  member_phone: "9123-4567"
+                  start_date: "2025-05-01"
+                  end_date: "2025-05-15"
+                  university:
+                    id: 1
+                    name: "The University of Hong Kong"
+                    code: "HKU"
+                  status: "confirmed"
+                  created_at: "2025-04-15T12:34:56.789Z"
+                - id: 2
+                  accommodation:
+                    id: 1
+                    title: "Cozy Studio Apartment"
+                    type: "room"
+                    price: "8000.00"
+                  user_id: "jsmith456"
+                  member_name: "Jane Smith"
+                  member_email: "jane.smith@example.com"
+                  member_phone: "9876-5432"
+                  start_date: "2025-03-01"
+                  end_date: "2025-03-15"
+                  university:
+                    id: 1
+                    name: "The University of Hong Kong"
+                    code: "HKU"
+                  status: "completed"
+                  created_at: "2025-02-15T10:30:00.000Z"
+          description: 'Successfully retrieved reservations'
+    post:
+      operationId: reservations_create
+      summary: "Create reservation"
+      description: "Make a reservation for an accommodation. The reservation will be associated with the specified university."
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+            example:
+              accommodation_id: 1
+              user_id: "jdoe123"
+              member_name: "John Doe"
+              member_email: "john.doe@example.com"
+              member_phone: "9123-4567"
+              start_date: "2025-05-01"
+              end_date: "2025-05-15"
+              university_id: 1
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: 'Reservation created successfully'
+
+  /api/reservations/{id}/:
+    get:
+      operationId: reservations_retrieve
+      summary: "Get reservation details"
+      description: "Retrieve details of a specific reservation. Students can only view their own reservations."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: 'Successfully retrieved reservation details'
+    put:
+      operationId: reservations_update
+      summary: "Update reservation"
+      description: "Update all fields of an existing reservation. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reservation'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: 'Reservation updated successfully'
+    delete:
+      operationId: reservations_destroy
+      summary: "Delete reservation"
+      description: "Remove a reservation from the system. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      responses:
+        '204':
+          description: 'Reservation deleted successfully'
+
+  /api/reservations/{id}/cancel/:
+    post:
+      operationId: reservations_cancel_create
+      summary: "Cancel reservation"
+      description: "Cancel an existing reservation. Students can only cancel their own reservations, while specialists can cancel any reservation for their university."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "reservation cancelled"
+          description: 'Reservation cancelled successfully'
+
+  /api/reservations/{id}/confirm/:
+    post:
+      operationId: reservations_confirm_create
+      summary: "Confirm reservation"
+      description: "Confirm a pending reservation. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "reservation confirmed"
+          description: 'Reservation confirmed successfully'
+   
+  /api/reservations/{id}/complete/:
+    post:
+      operationId: reservations_complete_create
+      summary: "Complete reservation"
+      description: "Mark a confirmed reservation as completed. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this reservation.
+        required: true
+      tags:
+      - reservations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "reservation completed"
+          description: 'Reservation marked as completed successfully'
+
+components:
+  schemas:
+    University:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+          description: "Full name of the university"
+        code:
+          type: string
+          maxLength: 10
+          description: "Short code for the university (e.g., HKU, HKUST, CUHK)"
+      required:
+      - name
+      - code
+
+    Accommodation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        type:
+          enum:
+          - hall
+          - room
+          - flat
+          type: string
+          description: "Type of accommodation (mini hall, room, flat)"
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        beds:
+          type: integer
+        bedrooms:
+          type: integer
+        location:
+          $ref: '#/components/schemas/Location'
+          readOnly: true
+        location_id:
+          type: integer
+          writeOnly: true
+        available_from:
+          type: string
+          format: date
+        available_until:
+          type: string
+          format: date
+        owner:
+          $ref: '#/components/schemas/Owner'
+          readOnly: true
+        owner_id:
+          type: integer
+          writeOnly: true
+        universities:
+          type: array
+          items:
+            $ref: '#/components/schemas/University'
+          readOnly: true
+          description: "List of universities that manage this accommodation"
+        university_ids:
+          type: array
+          items:
+            type: integer
+          writeOnly: true
+          description: "IDs of universities that manage this accommodation"
+        average_rating:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - title
+      - description
+      - type
+      - price
+      - beds
+      - bedrooms
+      - location_id
+      - available_from
+      - available_until
+      - owner_id
+
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        accommodation:
+          $ref: '#/components/schemas/Accommodation'
+          readOnly: true
+        accommodation_id:
+          type: integer
+          writeOnly: true
+        user_id:
+          type: string
+          maxLength: 100
+        member_name:
+          type: string
+          maxLength: 100
+        member_email:
+          type: string
+          format: email
+        member_phone:
+          type: string
+          maxLength: 20
+        start_date:
+          type: string
+          format: date
+          description: "Start date of the reservation period"
+        end_date:
+          type: string
+          format: date
+          description: "End date of the reservation period"
+        university:
+          $ref: '#/components/schemas/University'
+          readOnly: true
+          description: "The university associated with this reservation"
+        university_id:
+          type: integer
+          writeOnly: true
+          description: "ID of the university managing this reservation"
+        status:
+          enum:
+          - pending
+          - confirmed
+          - completed
+          - cancelled
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - accommodation_id
+      - user_id
+      - start_date
+      - end_date
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        type:
+          enum:
+          - reservation_created
+          - reservation_confirmed
+          - reservation_completed
+          - reservation_cancelled
+          type: string
+        message:
+          type: string
+        is_read:
+          type: boolean
+        reservation:
+          $ref: '#/components/schemas/Reservation'
+          readOnly: true
+        university:
+          $ref: '#/components/schemas/University'
+          readOnly: true
+          description: "The university this notification is for"
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - type
+      - message
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        address:
+          type: string
+          maxLength: 255
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        geo_address:
+          type: string
+          maxLength: 255
+        is_campus:
+          type: boolean
+      required:
+      - name
+
+    Owner:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        contact:
+          type: string
+          maxLength: 100
+      required:
+      - name
+      - contact
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        accommodation:
+          type: integer
+        user_id:
+          type: string
+          maxLength: 100
+        score:
+          enum:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          type: integer
+        comment:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - accommodation
+      - user_id
+      - score
