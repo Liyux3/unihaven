@@ -1,0 +1,610 @@
+openapi: 3.0.3
+info:
+  title: UniHaven API
+  version: 2.0.0
+  description: 'API documentation for UniHaven accommodation service. This API allows university students to search for, reserve, and rate off-campus accommodations, while enabling university housing specialists to manage listings and monitor reservations. Release 2 now supports multiple universities including HKU, HKUST, and CUHK. Use the base URL: https:/127.0.0.1:8000'
+
+tags:
+  - name: accommodations
+    description: "Endpoints for managing accommodation listings. Allows searching, filtering, and viewing details of available properties. Supports filtering by university."
+  - name: reservations
+    description: "Endpoints for handling booking reservations. Students can create and cancel reservations, while specialists can view and manage all bookings. Reservations are now associated with a specific university."
+  - name: ratings
+    description: "Endpoints for student ratings and reviews of accommodations. Students can rate properties after their contract ends."
+  - name: locations
+    description: "Endpoints for geographical location data. Includes integration with DATA.GOV.HK Address Lookup Service."
+  - name: owners
+    description: "Endpoints for property owner information. Specialists can manage owner details."
+  - name: notifications
+    description: "Endpoints for system notifications. Specialists receive alerts for new reservations and cancellations, filtered by university."
+  - name: universities
+    description: "Endpoints for university information. Provides access to the list of universities supported by UniHaven."
+
+paths:
+  /api/universities/:
+    get:
+      operationId: universities_list
+      summary: "List all universities"
+      description: "Retrieve a list of all universities supported by UniHaven."
+      tags:
+      - universities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/University'
+              example:
+                - id: 1
+                  name: "The University of Hong Kong"
+                  code: "HKU"
+                - id: 2
+                  name: "Hong Kong University of Science and Technology"
+                  code: "HKUST"
+                - id: 3
+                  name: "The Chinese University of Hong Kong"
+                  code: "CUHK"
+          description: 'Successfully retrieved universities'
+    post:
+      operationId: universities_create
+      summary: "Create a new university"
+      description: "Add a new university to the system. This is typically done by system administrators."
+      tags:
+      - universities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/University'
+            example:
+              name: "The University of Hong Kong"
+              code: "HKU"
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+          description: 'University created successfully'
+
+  /api/universities/{id}/:
+    get:
+      operationId: universities_retrieve
+      summary: "Get university details"
+      description: "Retrieve details of a specific university."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this university.
+        required: true
+      tags:
+      - universities
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+          description: 'Successfully retrieved university details'
+    put:
+      operationId: universities_update
+      summary: "Update university"
+      description: "Update all fields of an existing university. Only available to system administrators."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this university.
+        required: true
+      tags:
+      - universities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/University'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+          description: 'University updated successfully'
+    delete:
+      operationId: universities_destroy
+      summary: "Delete university"
+      description: "Remove a university from the system. Only available to system administrators."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this university.
+        required: true
+      tags:
+      - universities
+      responses:
+        '204':
+          description: 'University deleted successfully'
+
+  /api/accommodations/:
+    get:
+      operationId: accommodations_list
+      summary: "List and filter available accommodations"
+      description: "Returns a list of accommodations that match the specified filters. Includes distance calculation when campus and distance parameters are provided. Can filter by university."
+      parameters:
+      - name: type
+        required: false
+        in: query
+        description: "Filter by accommodation type (hall, room, flat)"
+        schema:
+          type: string
+          enum: [hall, room, flat]
+      - name: min_price
+        required: false
+        in: query
+        description: "Filter by minimum price in HKD"
+        schema:
+          type: number
+      - name: max_price
+        required: false
+        in: query
+        description: "Filter by maximum price in HKD"
+        schema:
+          type: number
+      - name: min_beds
+        required: false
+        in: query
+        description: "Filter by minimum number of beds"
+        schema:
+          type: integer
+      - name: min_bedrooms
+        required: false
+        in: query
+        description: "Filter by minimum number of bedrooms"
+        schema:
+          type: integer
+      - name: near_campus_id
+        required: false
+        in: query
+        description: "ID of the campus to calculate distance from"
+        schema:
+          type: integer
+      - name: max_distance
+        required: false
+        in: query
+        description: "Maximum distance from campus in kilometers"
+        schema:
+          type: number
+      - name: available_from
+        required: false
+        in: query
+        description: "Filter by desired rental start date. Will exclude accommodations with overlapping reservations."
+        schema:
+          type: string
+          format: date
+      - name: available_until
+        required: false
+        in: query
+        description: "Filter by desired rental end date. Will exclude accommodations with overlapping reservations."
+        schema:
+          type: string
+          format: date
+      - name: university
+        required: false
+        in: query
+        description: "Filter by university code (e.g., HKU, HKUST, CUHK)"
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: "Which field to use when ordering the results (price, beds, bedrooms, created_at)"
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: "Search term for title and description"
+        schema:
+          type: string
+      tags:
+      - accommodations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Accommodation'
+              example:
+                - id: 1
+                  title: "Cozy Studio Apartment"
+                  description: "A comfortable studio near HKU"
+                  type: "room"
+                  price: "8000.00"
+                  beds: 1
+                  bedrooms: 1
+                  distance: 2.5
+                  location:
+                    id: 1
+                    name: "Central Building"
+                    address: "1 Queen's Road Central, Hong Kong"
+                    latitude: 22.2812
+                    longitude: 114.1589
+                    geo_address: "1234567890"
+                    is_campus: false
+                  available_from: "2025-05-01"
+                  available_until: "2025-12-31"
+                  owner:
+                    id: 1
+                    name: "John Smith"
+                    contact: "john@example.com"
+                  universities:
+                    - id: 1
+                      name: "The University of Hong Kong"
+                      code: "HKU"
+                  average_rating: 4.5
+                  created_at: "2025-04-15T12:34:56.789Z"
+          description: 'Successfully retrieved accommodations'
+    post:
+      operationId: accommodations_create
+      summary: "Create a new accommodation listing"
+      description: "Add a new accommodation to the system. Only available to university specialists."
+      tags:
+      - accommodations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Accommodation'
+            example:
+              title: "Cozy Studio Apartment"
+              description: "A comfortable studio near HKU"
+              type: "room"
+              price: "8000"
+              beds: 1
+              bedrooms: 1
+              location_id: 1
+              available_from: "2025-05-01"
+              available_until: "2025-12-31"
+              owner_id: 1
+              university_ids: [1]
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accommodation'
+          description: 'Accommodation created successfully'
+
+  /api/accommodations/{id}/:
+    get:
+      operationId: accommodations_retrieve
+      summary: "Get accommodation details"
+      description: "Retrieve detailed information about a specific accommodation."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accommodation.
+        required: true
+      tags:
+      - accommodations
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accommodation'
+          description: 'Successfully retrieved accommodation details'
+    put:
+      operationId: accommodations_update
+      summary: "Update accommodation details"
+      description: "Update all fields of an existing accommodation. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accommodation.
+        required: true
+      tags:
+      - accommodations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Accommodation'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accommodation'
+          description: 'Accommodation updated successfully'
+    delete:
+      operationId: accommodations_destroy
+      summary: "Delete accommodation"
+      description: "Remove an accommodation from the system. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accommodation.
+        required: true
+      tags:
+      - accommodations
+      responses:
+        '204':
+          description: 'Accommodation deleted successfully'
+
+  /api/locations/lookup_address/:
+    post:
+      operationId: locations_lookup_address_create
+      summary: "Lookup address using DATA.GOV.HK API"
+      description: "Look up an address using the DATA.GOV.HK Address Lookup Service and create a location record."
+      tags:
+      - locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                building_name:
+                  type: string
+                  description: Name of the building to lookup
+              required:
+                - building_name
+            example:
+              building_name: "Chow Yei Ching Building"
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+              example:
+                id: 23
+                name: "CHOW YEI CHING BUILDING"
+                address: "CHOW YEI CHING BUILDING, THE UNIVERSITY OF HONG KONG, 90 BONHAM ROAD, CENTRAL & WESTERN DISTRICT, HK"
+                latitude: 22.28308
+                longitude: 114.13544
+                geo_address: "3199616023T20050430"
+                is_campus: false
+          description: 'Address found and location created'
+        '400':
+          description: 'Invalid request or address not found'
+
+  /api/notifications/:
+    get:
+      operationId: notifications_list
+      summary: "List notifications"
+      description: "Retrieve notifications for university specialists, filtered by university."
+      parameters:
+      - name: university
+        required: false
+        in: query
+        description: "Filter notifications by university code"
+        schema:
+          type: string
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+              example:
+                - id: 1
+                  type: "reservation_created"
+                  message: "New reservation for Cozy Studio Apartment by John Doe"
+                  is_read: false
+                  university:
+                    id: 1
+                    name: "The University of Hong Kong"
+                    code: "HKU"
+                  reservation:
+                    id: 1
+                    accommodation:
+                      id: 1
+                      title: "Cozy Studio Apartment"
+                    user_id: "jdoe123"
+                    start_date: "2025-05-01"
+                    end_date: "2025-05-15"
+                    status: "pending"
+                    created_at: "2025-04-15T12:34:56.789Z"
+                  created_at: "2025-04-15T12:34:56.789Z"
+                - id: 2
+                  type: "reservation_confirmed"
+                  message: "Reservation for Cozy Studio Apartment by John Doe has been confirmed"
+                  is_read: false
+                  university:
+                    id: 1
+                    name: "The University of Hong Kong"
+                    code: "HKU"
+                  reservation:
+                    id: 1
+                    accommodation:
+                      id: 1
+                      title: "Cozy Studio Apartment"
+                    user_id: "jdoe123"
+                    start_date: "2025-05-01"
+                    end_date: "2025-05-15"
+                    status: "confirmed"
+                    created_at: "2025-04-15T12:34:56.789Z"
+                  created_at: "2025-04-15T13:00:00.000Z"
+          description: 'Successfully retrieved notifications'
+    post:
+      operationId: notifications_create
+      summary: "Create notification"
+      description: "Create a new notification. This is typically done automatically by the system."
+      tags:
+      - notifications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Notification'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: 'Notification created successfully'
+
+  /api/notifications/{id}/mark_as_read/:
+    post:
+      operationId: notifications_mark_as_read_create
+      summary: "Mark notification as read"
+      description: "Mark a notification as read by a university specialist."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this notification.
+        required: true
+      tags:
+      - notifications
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: 'Notification marked as read'
+
+  /api/owners/:
+    get:
+      operationId: owners_list
+      summary: "List property owners"
+      description: "Retrieve a list of all property owners. Only available to university specialists."
+      tags:
+      - owners
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Owner'
+              example:
+                - id: 1
+                  name: "John Smith"
+                  contact: "john@example.com"
+                - id: 2
+                  name: "Sarah Chen"
+                  contact: "9876-5432"
+          description: 'Successfully retrieved property owners'
+    post:
+      operationId: owners_create
+      summary: "Create property owner"
+      description: "Add a new property owner to the system. Only available to university specialists."
+      tags:
+      - owners
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Owner'
+            example:
+              name: "Jane Doe"
+              contact: "jane@example.com"
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Owner'
+          description: 'Property owner created successfully'
+
+  /api/owners/{id}/:
+    get:
+      operationId: owners_retrieve
+      summary: "Get property owner details"
+      description: "Retrieve details of a specific property owner. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this owner.
+        required: true
+      tags:
+      - owners
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Owner'
+          description: 'Successfully retrieved property owner details'
+    put:
+      operationId: owners_update
+      summary: "Update property owner"
+      description: "Update all fields of an existing property owner. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this owner.
+        required: true
+      tags:
+      - owners
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Owner'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Owner'
+          description: 'Property owner updated successfully'
+    delete:
+      operationId: owners_destroy
+      summary: "Delete property owner"
+      description: "Remove a property owner from the system. Only available to university specialists."
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this owner.
+        required: true
+      tags:
+      - owners
+      responses:
+        '204':
+          description: 'Property owner deleted successfully'
+
+  /api/ratings/:
+    get:
+      operationId: ratings_list
+      summary: "List accommodation ratings"
