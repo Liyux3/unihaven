@@ -1,0 +1,4 @@
+django>=4.2,<6.0
+djangorestframework>=3.14
+drf-yasg>=1.21
+requests>=2.28
